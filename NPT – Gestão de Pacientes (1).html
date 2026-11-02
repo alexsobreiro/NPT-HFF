@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-PT"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NPT – Gestão de Pacientes</title>
+<style>
+:root{--bg:#f5f7f8;--card:#fff;--tx:#1b2a30;--mu:#5d6f77;--ac:#0f766e;--ac2:#fff;--bd:#d5dde0;--wa:#b45309}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10181b;--card:#182226;--tx:#e6eef0;--mu:#93a7ad;--ac:#2dd4bf;--ac2:#06231f;--bd:#2c3b40;--wa:#fbbf24}}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+.w{max-width:900px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:0}h2{font-size:16px;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--mu);margin-bottom:3px}
+input,select,textarea{width:100%;padding:8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:inherit}
+button{padding:8px 14px;border:0;border-radius:6px;background:var(--ac);color:var(--ac2);font:inherit;font-weight:600;cursor:pointer}
+button.s{background:transparent;color:var(--ac);border:1px solid var(--ac)}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+.tabs button.on{background:var(--ac);color:var(--ac2);border-color:var(--ac)}
+.ck label{display:inline-flex;gap:6px;align-items:center;font-size:14px;color:var(--tx);margin-right:14px}
+.ck input{width:auto}
+.res{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}
+.res div{border:1px solid var(--bd);border-radius:8px;padding:8px}
+.res b{display:block;font-size:18px}.res span{font-size:12px;color:var(--mu)}
+.wa{color:var(--wa);font-size:13px;margin-top:6px}
+.ov{overflow-x:auto}table{border-collapse:collapse;width:100%}
+td,th{border-bottom:1px solid var(--bd);padding:6px 8px;text-align:left;font-size:14px}
+a{color:var(--ac);cursor:pointer}.hide{display:none}
+#login{max-width:340px;margin:12vh auto}
+#pa{display:none}
+#mdl{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;z-index:9;padding:16px}#mdl.hide{display:none}#mdl .card{width:100%;max-width:340px;margin:0}#toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ac);color:var(--ac2);padding:8px 14px;border-radius:8px;z-index:10;display:none;max-width:90%}
+@media print{body *{visibility:hidden}#pa,#pa *{visibility:visible}#pa{display:block;position:absolute;inset:0;padding:20px;color:#000;background:#fff}}
+</style></head><body><div class="w">
+
+<div id="login" class="card">
+ <h1>NPT – Acesso</h1><p style="color:var(--mu);font-size:13px">Acesso apenas para utilizadores autorizados pelo administrador.</p>
+ <label>E-mail</label><input id="lu" type="email"><br><br>
+ <label>Senha</label><input id="lp" type="password"><br><br>
+ <button onclick="entrar()" style="width:100%">Entrar</button>
+ <p style="font-size:13px"><a onclick="recuperar()">Recuperar senha</a> · <a onclick="pedir()">Solicitar acesso</a></p>
+ <div id="lm" class="wa"></div>
+</div>
+
+<div id="app" class="hide">
+ <div class="bar"><h1>NPT – Gestão de Pacientes</h1><button class="s" onclick="sair()">Sair</button></div>
+ <div class="tabs"><button id="t1" class="on" onclick="tab(1)">Paciente</button><button id="t2" onclick="tab(2)">Relatórios</button><button id="t3" class="hide" onclick="tab(3)">Administração</button></div>
+
+ <div id="v1">
+ <div class="card"><h2>2. Dados de cadastro</h2><div class="g">
+  <div><label>Nome</label><input id="nome"></div>
+  <div><label>Data</label><input id="data" type="date"></div>
+  <div><label>Sexo</label><select id="sexo"><option>Feminino</option><option>Masculino</option></select></div>
+  <div><label>Idade</label><input id="idade" type="number" min="0"></div>
+  <div><label>Patologia</label><select id="pat"></select></div>
+  <div><label>Equipa</label><select id="equipa"></select></div>
+  <div><label>Peso (kg)</label><input id="peso" type="number" step="0.1" min="0" oninput="if(!pm)$('npeso').value=this.value;calc()"></div>
+ </div></div>
+
+ <div class="card"><h2>3. Exame laboratorial</h2><div class="g">
+  <div><label>Data</label><input id="ex_data" type="date"></div>
+  <div><label>Hemograma</label><input id="ex_hemo"></div>
+  <div><label>Glicose</label><input id="ex_gli"></div>
+  <div><label>Ureia</label><input id="ex_ure"></div>
+  <div><label>Creatinina</label><input id="ex_cre"></div>
+  <div><label>Colesterol total</label><input id="ex_col"></div>
+  <div><label>Ferro sérico</label><input id="ex_fer"></div>
+  <div><label>Transferrina</label><input id="ex_tra"></div>
+ </div></div>
+
+ <div class="card"><h2>4. Patologia associada</h2><div class="ck" id="assoc">
+  <label><input type="checkbox" value="Diabetes">Diabetes</label>
+  <label><input type="checkbox" value="Insuficiência renal">Insuficiência renal</label>
+  <label><input type="checkbox" value="Dislipidemia">Dislipidemia</label></div></div>
+
+ <div class="card"><h2>5. NPT</h2><div class="g">
+  <div><label>Peso para o cálculo (kg) – à sua escolha</label><input id="npeso" type="number" step="0.1" min="0" oninput="pm=1;calc()"></div>
+  <div><label>Kcal/kg</label><select id="kcal" onchange="calc()"></select></div>
+  <div><label>Proteína (g/kg)</label><select id="prot" onchange="calc()"></select></div>
+  <div><label>% Carboidrato</label><select id="pch" onchange="calc()"></select></div>
+  <div><label>% Lipídio</label><select id="plip" onchange="calc()"></select></div>
+ </div>
+ <div class="res" id="res"></div><div class="wa" id="aviso"></div>
+ <h2 style="margin-top:16px">Nutrição parenteral prescrita</h2><div class="g"><div><label>1. NPT prescrita</label><select id="nptp"></select></div><div><label>2. Volume final (mL)</label><input id="vol" type="number" min="0" step="1" inputmode="decimal"></div><div><label>3. Complicações</label><select id="comp"></select></div></div></div>
+
+ <div class="card"><h2>7. Observação geral</h2><textarea id="obs" rows="3"></textarea></div>
+ <button onclick="salvar()">Guardar paciente</button> <button class="s" onclick="novo()">Novo</button>
+ </div>
+
+ <div id="v2" class="hide">
+  <div class="card"><h2>Relatório de produção</h2><div class="g">
+   <div><label>Tipo</label><select id="rt" onchange="rfill()"><option value="eq">Por equipa</option><option value="mes">Por mês</option></select></div>
+   <div><label>Valor</label><select id="rv" onchange="rel()"></select></div></div><br>
+   <div class="ov"><table id="prod"></table></div><br><button class="s" onclick="pdfProd()">Baixar PDF</button> <button class="s" onclick="xlsProd()">Baixar Excel</button></div>
+  <div class="card"><h2>Relatório por paciente (PDF)</h2>
+   <p style="font-size:13px;color:var(--mu)">«Baixar PDF» gera o ficheiro PDF e pede confirmação para o guardar.</p>
+   <div class="ov"><table id="lista"></table></div><br><button class="s" onclick="xls()">Baixar Excel (todos os pacientes)</button></div>
+ </div>
+
+ <div id="v3" class="hide">
+  <div class="card"><h2>Utilizadores</h2><div class="ov"><table id="ul"></table></div></div>
+  <div class="card"><h2>Patologias</h2><div id="cp"></div><br><div class="g"><input id="np" placeholder="Nova patologia"><button onclick="addC('pat')">Incluir</button></div></div>
+  <div class="card"><h2>Equipas</h2><div id="ce"></div><br><div class="g"><input id="ne" placeholder="Nova equipa"><button onclick="addC('eq')">Incluir</button></div></div>
+  <div class="card"><h2>NPT prescrita</h2><div id="cn"></div><br><div class="g"><input id="nn" placeholder="Nova NPT prescrita"><button onclick="addC('nptp')">Incluir</button></div></div>
+  <div class="card"><h2>Complicações</h2><div id="cx"></div><br><div class="g"><input id="nx" placeholder="Nova complicação"><button onclick="addC('comp')">Incluir</button></div></div>
+  <div class="card"><h2>Valores da NPT (item 5)</h2>
+   <label>Kcal/kg</label><div id="ck"></div><div class="g"><input id="nk" placeholder="Novo valor" inputmode="decimal"><button onclick="addC('kcal')">Incluir</button></div><br>
+   <label>Proteína (g/kg)</label><div id="cpr"></div><div class="g"><input id="npr" placeholder="Novo valor" inputmode="decimal"><button onclick="addC('prot')">Incluir</button></div><br>
+   <label>% Carboidrato</label><div id="cc"></div><div class="g"><input id="nc" placeholder="Novo valor" inputmode="decimal"><button onclick="addC('pch')">Incluir</button></div><br>
+   <label>% Lipídio</label><div id="cl"></div><div class="g"><input id="nl" placeholder="Novo valor" inputmode="decimal"><button onclick="addC('plip')">Incluir</button></div></div>
+ </div>
+</div>
+
+<div id="pa"></div>
+<div id="toast"></div>
+<div id="mdl" class="hide"><div class="card"><p id="mt"></p><input id="mi"><br><br><button id="mok">OK</button> <button id="mno" class="s">Cancelar</button></div></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const ADM='alexsobreiro@gmail.com',ADH='0160face20fe160a0931634d32c37a510bec4c7518c9a3a3e7b5f580cf3fe25f';
+const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const hs=async(e,p)=>{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('npt:'+e+':'+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')};
+const rng=(a,b,s)=>{let r=[];for(let x=a;x<=b+1e-9;x+=s)r.push(+x.toFixed(2));return r};
+const fill=(id,arr,def)=>{$(id).innerHTML=arr.map(v=>`<option ${v==def?'selected':''}>${esc(v)}</option>`).join('')};
+
+const F=["nome","data","sexo","idade","pat","equipa","peso","npeso","nptp","vol","comp","ex_data","ex_hemo","ex_gli","ex_ure","ex_cre","ex_col","ex_fer","ex_tra","kcal","prot","pch","plip","obs"];
+let id=null,R=null,pm=0,isAdm=false;
+const C=()=>({pat:["Oncologia","Cirurgia digestiva","Pediatria","Cuidados intensivos","Outra"],eq:["Equipa A","Equipa B"],nptp:["NPT 2 em 1","NPT 3 em 1","NPT central","NPT periférica"],comp:["Nenhuma","Hiperglicemia","Hipoglicemia","Infeção associada ao cateter","Distúrbios hidroeletrolíticos","Disfunção hepática"],kcal:rng(20,40,5),prot:rng(0.8,2.0,0.2),pch:rng(40,80,5),plip:rng(20,60,5),...ld('npt_c',{})});
+const DEF={kcal:25,prot:1.2,pch:60,plip:40};
+const get=()=>ld('npt_p',[]),put=a=>sv('npt_p',a),U=()=>ld('npt_u',[]);
+const f1=n=>n.toLocaleString('pt-PT',{maximumFractionDigits:1});
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3500)}
+function ask(t,pw,no){return new Promise(r=>{$('mt').textContent=t;const i=$('mi');i.type=pw?'password':'text';i.value='';i.classList.toggle('hide',!!no);$('mdl').classList.remove('hide');if(!no)i.focus();const d=v=>{$('mdl').classList.add('hide');r(v)};$('mok').onclick=()=>d(no?true:i.value);$('mno').onclick=()=>d(null)})}
+function msg(t){$('lm').textContent=t}
+function lists(){const c=C();const p=$('pat').value,e=$('equipa').value;fill('pat',c.pat);fill('equipa',c.eq);$('pat').value=p||c.pat[0];$('equipa').value=e||c.eq[0];
+ ['nptp','comp'].forEach(k=>{const cur=$(k).value;fill(k,c[k]);$(k).value=c[k].includes(cur)?cur:c[k][0]});
+ Object.keys(DEF).forEach(k=>{const cur=$(k).value,l=c[k];fill(k,l);$(k).value=l.map(String).includes(cur)?cur:(l.includes(DEF[k])?DEF[k]:l[0])});calc()}
+async function entrar(){
+ const e=$('lu').value.trim().toLowerCase(),p=$('lp').value;if(!e||!p)return msg('Indique e-mail e senha.');
+ const h=await hs(e,p);
+ if(e==ADM&&h==ADH)isAdm=true;
+ else{const u=U().find(x=>x.email==e);
+  if(!u||u.hash!=h)return msg('E-mail ou senha incorretos.');
+  if(u.status=='pendente')return msg('Acesso ainda não autorizado pelo administrador.');
+  if(u.status!='autorizado')return msg('Acesso cancelado. Contacte o administrador.');
+  isAdm=false}
+ msg('');$('login').classList.add('hide');$('app').classList.remove('hide');$('t3').classList.toggle('hide',!isAdm);lists();novo();tab(1)}
+async function pedir(){
+ const e=((await ask('O seu e-mail:'))||'').trim().toLowerCase();if(!e)return;
+ const p=await ask('Escolha uma senha:',1);if(!p)return;
+ const a=U();if(e==ADM||a.find(x=>x.email==e))return msg('Este e-mail já existe.');
+ a.push({email:e,hash:await hs(e,p),status:'pendente',data:new Date().toISOString().slice(0,10)});sv('npt_u',a);msg('Pedido registado. Aguarde a autorização do administrador.')}
+function recuperar(){msg('Para recuperar a senha, peça ao administrador para a redefinir na área de Administração.')}
+function sair(){$('app').classList.add('hide');$('login').classList.remove('hide');$('lp').value=''}
+function tab(n){[1,2,3].forEach(i=>{$('v'+i).classList.toggle('hide',n!=i);$('t'+i).classList.toggle('on',n==i)});if(n==2){lista();rfill()}if(n==3)adm()}
+function calc(){
+ const p=+$('npeso').value||0,k=+$('kcal').value,pr=+$('prot').value,c=+$('pch').value,l=+$('plip').value;
+ const kt=p*k,ptn=pr*p,rest=kt-ptn*4.1,chK=rest*c/100,lipK=rest*l/100;
+ R={kt,ptn,ch:chK/3.8,lip:lipK/9.1,chK,lipK,peso:p};
+ $('res').innerHTML=[['Kcal total',kt,'kcal'],['Proteína',R.ptn,'g'],['Carboidrato',R.ch,'g'],['Lipídio',R.lip,'g']].map(x=>`<div><span>${x[0]}</span><b>${f1(x[1])} ${x[2]}</b></div>`).join('');
+ $('aviso').textContent=c+l!=100?`Atenção: %CH + %Lip = ${c+l}% (deve ser 100%).`:''}
+function novo(){id=null;pm=0;F.forEach(f=>{if(!['sexo','pat','equipa','nptp','comp','kcal','prot','pch','plip'].includes(f))$(f).value=''});
+ $('data').value=new Date().toISOString().slice(0,10);document.querySelectorAll('#assoc input').forEach(c=>c.checked=false);calc()}
+function salvar(){
+ if(!$('nome').value)return toast('Indique o nome.');
+ const o={id:id||Date.now()};F.forEach(f=>o[f]=$(f).value);
+ o.assoc=[...document.querySelectorAll('#assoc input:checked')].map(c=>c.value);o.R=R;
+ let a=get();const i=a.findIndex(x=>x.id==o.id);i>=0?a[i]=o:a.push(o);put(a);id=o.id;toast('Paciente guardado.')}
+function abrir(i){try{abrir2(i)}catch(e){toast('Erro ao abrir: '+e.message)}}
+function abrir2(i){const o=get().find(x=>x.id==i);if(!o)return toast('Paciente não encontrado.');id=o.id;pm=1;lists();F.forEach(f=>$(f).value=o[f]??'');
+ document.querySelectorAll('#assoc input').forEach(c=>c.checked=o.assoc.includes(c.value));calc();tab(1)}
+async function apagar(i){if(await ask('Eliminar este paciente?',0,1)){put(get().filter(x=>x.id!=i));lista();rel()}}
+function lista(){const a=get();
+ $('lista').innerHTML='<tr><th>Nome</th><th>Equipa</th><th>Data</th><th></th></tr>'+(a.map(o=>`<tr><td>${esc(o.nome)}</td><td>${esc(o.equipa)}</td><td>${o.data}</td><td><a onclick="abrir(${o.id})">Abrir</a> · <a onclick="pdf(${o.id})">Baixar PDF</a> · <a onclick="xls([${o.id}])">Baixar Excel</a> · <a onclick="apagar(${o.id})">Eliminar</a></td></tr>`).join('')||'<tr><td colspan=4>Sem pacientes.</td></tr>')}
+function rfill(){const a=get(),eq=$('rt').value=='eq';
+ const v=eq?[...new Set([...C().eq,...a.map(o=>o.equipa)])]:[...new Set(a.map(o=>(o.data||'').slice(0,7)))].sort();
+ $('rv').innerHTML=v.map(x=>`<option>${esc(x)}</option>`).join('')||'<option value="">—</option>';rel()}
+function sel(){const eq=$('rt').value=='eq',v=$('rv').value;return get().filter(o=>eq?o.equipa==v:(o.data||'').slice(0,7)==v)}
+function rel(){const a=sel(),eq=$('rt').value=='eq';
+ $('prod').innerHTML=`<tr><th>Paciente</th><th>Data</th><th>${eq?'Patologia':'Equipa'}</th><th>Kcal total</th></tr>`+(a.map(o=>`<tr><td>${esc(o.nome)}</td><td>${o.data}</td><td>${esc(eq?o.pat:o.equipa)}</td><td>${f1(o.R?.kt||0)}</td></tr>`).join('')||'<tr><td colspan=4>Sem dados.</td></tr>')+`<tr><th colspan=4>Total: ${a.length} paciente(s)</th></tr>`}
+function pdfProd(){const a=sel(),eq=$('rt').value=='eq';
+ const L=[['Relatório de produção',1],[''],[`${eq?'Equipa':'Mês'}: ${$('rv').value}`,1],[''],...a.map(o=>[`${o.nome} - ${o.data} - ${eq?o.pat:o.equipa} - ${f1(o.R?.kt||0)} kcal`]),[''],[`Total: ${a.length} paciente(s)`,1]];
+ savePdf('producao-'+($('rv').value||'geral').replace(/[^\w-]+/g,'_')+'.pdf',L)}
+function adm(){
+ $('ul').innerHTML='<tr><th>E-mail</th><th>Estado</th><th></th></tr>'+(U().map((u,i)=>`<tr><td>${esc(u.email)}</td><td>${u.status}</td><td>${u.status!='autorizado'?`<a onclick="st(${i},'autorizado')">Autorizar</a> · `:''}${u.status!='cancelado'?`<a onclick="st(${i},'cancelado')">Cancelar acesso</a> · `:''}<a onclick="rs(${i})">Redefinir senha</a></td></tr>`).join('')||'<tr><td colspan=3>Sem pedidos.</td></tr>');
+ const c=C();const BX={pat:'cp',eq:'ce',nptp:'cn',comp:'cx',kcal:'ck',prot:'cpr',pch:'cc',plip:'cl'};Object.keys(BX).forEach(k=>$(BX[k]).innerHTML=c[k].map((x,i)=>`<span style="display:inline-block;border:1px solid var(--bd);border-radius:14px;padding:3px 10px;margin:0 6px 6px 0">${esc(x)} <a onclick="delC('${k}',${i})">×</a></span>`).join(''))}
+function st(i,s){const a=U();a[i].status=s;sv('npt_u',a);adm()}
+async function rs(i){const p=await ask('Nova senha para este utilizador:',1);if(!p)return;const a=U();a[i].hash=await hs(a[i].email,p);sv('npt_u',a);toast('Senha redefinida.')}
+function addC(k){const IN={pat:'np',eq:'ne',nptp:'nn',comp:'nx',kcal:'nk',prot:'npr',pch:'nc',plip:'nl'},el=$(IN[k]);let v=el.value.trim();if(!v)return;const c=C();
+ if(k in DEF){v=parseFloat(v.replace(',','.'));if(isNaN(v)||v<0)return toast('Indique um número válido.');if((k=='pch'||k=='plip')&&v>100)return toast('A percentagem não pode ser superior a 100.')}
+ if(!c[k].includes(v)){c[k].push(v);if(k in DEF)c[k].sort((a,b)=>a-b)}sv('npt_c',c);el.value='';adm();lists()}
+function delC(k,i){const c=C();if(c[k].length<=1)return toast('Mantenha pelo menos uma opção na lista.');c[k].splice(i,1);sv('npt_c',c);adm();lists()}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function mkpdf(L){
+ const lat=t=>String(t??'').replace(/[–—]/g,'-').replace(/[^\x20-\xff]/g,'?').replace(/[\\()]/g,'\\$&');
+ const rows=[];L.forEach(([t,b])=>{t=lat(t);const w=b?70:95;if(!t){rows.push(['',0]);return}while(t.length>w){let k=t.lastIndexOf(' ',w);if(k<20)k=w;rows.push([t.slice(0,k),b]);t=t.slice(k).trim()}rows.push([t,b])});
+ const pg=[];for(let i=0;i<rows.length;i+=52)pg.push(rows.slice(i,i+52));if(!pg.length)pg.push([]);
+ const o=[];o[1]='<</Type/Catalog/Pages 2 0 R>>';
+ o[2]='<</Type/Pages/Kids['+pg.map((_,i)=>(5+2*i)+' 0 R').join(' ')+']/Count '+pg.length+'>>';
+ o[3]='<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>';
+ o[4]='<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>';
+ pg.forEach((r,i)=>{const c='BT 14 TL 50 792 Td\n'+r.map(([t,b])=>`/F${b?2:1} ${b?12:10} Tf (${t}) Tj T*`).join('\n')+'\nET';
+  o[5+2*i]='<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Resources<</Font<</F1 3 0 R/F2 4 0 R>>>>/Contents '+(6+2*i)+' 0 R>>';
+  o[6+2*i]='<</Length '+c.length+'>>\nstream\n'+c+'\nendstream'});
+ let out='%PDF-1.4\n';const off=[];
+ for(let i=1;i<o.length;i++){off[i]=out.length;out+=i+' 0 obj\n'+o[i]+'\nendobj\n'}
+ const x=out.length;out+='xref\n0 '+o.length+'\n0000000000 65535 f \n'+off.slice(1).map(v=>String(v).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<</Size '+o.length+'/Root 1 0 R>>\nstartxref\n'+x+'\n%%EOF';
+ const u=new Uint8Array(out.length);for(let i=0;i<out.length;i++)u[i]=out.charCodeAt(i)&255;return u}
+async function savePdf(name,L){
+ try{const d=window.claude&&await claude.use('downloads');
+  if(!d)return toast('Guardar ficheiros não está disponível neste ambiente.');
+  await d.save({filename:name,data:mkpdf(L)});toast('PDF guardado.')}
+ catch(e){if(e&&e.code=='declined')return;toast('Não foi possível guardar o PDF'+(e&&e.message?': '+e.message:'.'))}}
+function crc(u){const t=crc.t||(crc.t=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0}));let r=-1;for(const b of u)r=t[(r^b)&255]^(r>>>8);return(r^-1)>>>0}
+function zip(files){const enc=new TextEncoder(),parts=[],cd=[];let off=0;
+ files.forEach(([n,t])=>{const nb=enc.encode(n),d=enc.encode(t),c=crc(d);
+  const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(12,0x21,true);h.setUint32(14,c,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,nb.length,true);
+  parts.push(new Uint8Array(h.buffer),nb,d);
+  const e=new DataView(new ArrayBuffer(46));e.setUint32(0,0x02014b50,true);e.setUint16(4,20,true);e.setUint16(6,20,true);e.setUint16(8,0x0800,true);e.setUint16(14,0x21,true);e.setUint32(16,c,true);e.setUint32(20,d.length,true);e.setUint32(24,d.length,true);e.setUint16(28,nb.length,true);e.setUint32(42,off,true);
+  cd.push(new Uint8Array(e.buffer),nb);off+=30+nb.length+d.length});
+ const cs=cd.reduce((a,b)=>a+b.length,0),z=new DataView(new ArrayBuffer(22));z.setUint32(0,0x06054b50,true);z.setUint16(8,files.length,true);z.setUint16(10,files.length,true);z.setUint32(12,cs,true);z.setUint32(16,off,true);
+ const all=[...parts,...cd,new Uint8Array(z.buffer)],u=new Uint8Array(all.reduce((a,b)=>a+b.length,0));let p=0;all.forEach(b=>{u.set(b,p);p+=b.length});return u}
+function colL(n){let s='';n++;while(n){s=String.fromCharCode(65+(n-1)%26)+s;n=Math.floor((n-1)/26)}return s}
+function mkxlsx(rows){
+ const x=v=>String(v??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+ const H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',N='http://schemas.openxmlformats.org/';
+ const sh=H+`<worksheet xmlns="${N}spreadsheetml/2006/main"><cols><col min="1" max="40" width="18" customWidth="1"/></cols><sheetData>`+rows.map((r,i)=>`<row r="${i+1}">`+r.map((v,j)=>{const ref=colL(j)+(i+1);return typeof v=='number'&&isFinite(v)?`<c r="${ref}"><v>${v}</v></c>`:`<c r="${ref}" t="inlineStr"${i?'':' s="1"'}><is><t xml:space="preserve">${x(v)}</t></is></c>`}).join('')+'</row>').join('')+'</sheetData></worksheet>';
+ return zip([
+ ['[Content_Types].xml',H+`<Types xmlns="${N}package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
+ ['_rels/.rels',H+`<Relationships xmlns="${N}package/2006/relationships"><Relationship Id="rId1" Type="${N}officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+ ['xl/workbook.xml',H+`<workbook xmlns="${N}spreadsheetml/2006/main" xmlns:r="${N}officeDocument/2006/relationships"><sheets><sheet name="Relatorio" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+ ['xl/_rels/workbook.xml.rels',H+`<Relationships xmlns="${N}package/2006/relationships"><Relationship Id="rId1" Type="${N}officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${N}officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+ ['xl/styles.xml',H+`<styleSheet xmlns="${N}spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>`],
+ ['xl/worksheets/sheet1.xml',sh]])}
+const nm=v=>v!==''&&v!=null&&!isNaN(+v)?+v:(v||'');
+const XH=['Nome','Data','Sexo','Idade','Patologia','Equipa','Peso (kg)','Peso NPT (kg)','Patologia associada','Data exame','Hemograma','Glicose','Ureia','Creatinina','Colesterol total','Ferro sérico','Transferrina','Kcal/kg','Proteína (g/kg)','% Carboidrato','% Lipídio','Kcal total','Proteína (g)','Carboidrato (g)','Lipídio (g)','NPT prescrita','Volume final (mL)','Complicações','Observação'];
+function xrows(a){return[XH,...a.map(o=>{const r=o.R||{},q=v=>+(v||0).toFixed(1);return[o.nome,o.data,o.sexo,nm(o.idade),o.pat,o.equipa,nm(o.peso),nm(o.npeso||o.peso),(o.assoc||[]).join(', '),o.ex_data,o.ex_hemo,o.ex_gli,o.ex_ure,o.ex_cre,o.ex_col,o.ex_fer,o.ex_tra,nm(o.kcal),nm(o.prot),nm(o.pch),nm(o.plip),q(r.kt),q(r.ptn),q(r.ch),q(r.lip),o.nptp,nm(o.vol),o.comp,o.obs]})]}
+async function saveXls(name,a){
+ if(!a.length)return toast('Sem dados para exportar.');
+ try{const d=window.claude&&await claude.use('downloads');
+  if(!d)return toast('Guardar ficheiros não está disponível neste ambiente.');
+  await d.save({filename:name,data:mkxlsx(xrows(a))});toast('Excel guardado.')}
+ catch(e){if(e&&e.code=='declined')return;toast('Não foi possível guardar o Excel'+(e&&e.message?': '+e.message:'.'))}}
+function xls(ids){const a=ids?get().filter(o=>ids.includes(o.id)):get();
+ saveXls(ids&&a[0]?'paciente-'+(a[0].nome||'sem-nome').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w]+/g,'_')+'.xlsx':'pacientes.xlsx',a)}
+function xlsProd(){saveXls('producao-'+($('rv').value||'geral').replace(/[^\w-]+/g,'_')+'.xlsx',sel())}
+function pdf(i){
+ const o=get().find(x=>x.id==i);if(!o)return;const r=o.R||{};
+ const L=[['Relatório do paciente',1],[''],[o.nome,1],[`${o.sexo} - ${o.idade} anos - ${o.peso} kg`],[`Patologia: ${o.pat}`],[`Equipa: ${o.equipa}`],[`Data: ${o.data}`],[''],
+ ['Patologia associada',1],[o.assoc.length?o.assoc.join(', '):'-'],[''],
+ [`Exames laboratoriais (${o.ex_data||'-'})`,1],[`Hemograma: ${o.ex_hemo||'-'}`],[`Glicose: ${o.ex_gli||'-'}`],[`Ureia: ${o.ex_ure||'-'}`],[`Creatinina: ${o.ex_cre||'-'}`],[`Colesterol total: ${o.ex_col||'-'}`],[`Ferro sérico: ${o.ex_fer||'-'}`],[`Transferrina: ${o.ex_tra||'-'}`],[''],
+ ['NPT',1],[`Peso utilizado: ${o.npeso||o.peso} kg`],[`${o.kcal} kcal/kg - ${o.prot} g/kg proteína - ${o.pch}% CH - ${o.plip}% Lip`],
+ [`Kcal total: ${f1(r.kt||0)} kcal`],[`Proteína: ${f1(r.ptn||0)} g`],[`Carboidrato: ${f1(r.ch||0)} g`],[`Lipídio: ${f1(r.lip||0)} g`],[''],['NPT prescrita',1],[`NPT prescrita: ${o.nptp||'-'}`],[`Volume final: ${o.vol||'-'} mL`],[`Complicações: ${o.comp||'-'}`],[''],
+ ['Observação geral',1],[o.obs||'-']];
+ savePdf('paciente-'+(o.nome||'sem-nome').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w]+/g,'_')+'.pdf',L)}
+</script></body></html>
